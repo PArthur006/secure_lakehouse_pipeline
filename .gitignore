@@ -1,0 +1,11 @@
+# Ambientes
+venv/
+__pycache__/
+
+# Dados 
+data/
+!data/**/.gitkeep
+
+# Segurança
+.env
+keys/
