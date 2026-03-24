@@ -3,14 +3,19 @@ import sys
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, sha2, concat, lit, regexp_replace, when
 from delta import configure_spark_with_delta_pip
+from dotenv import load_dotenv
+from security_utils import hash_sensivel, mascarar_email, mascarar_telefone
 
 # Força o PySpark a usar o Python do VENV
 os.environ['PYSPARK_PYTHON'] = sys.executable
 os.environ['PYSPARK_DRIVER_PYTHON'] = sys.executable
 
-# Em produção, esse "Salt" jamais ficaria no código fonte. Ele seria gerenciado por um serviço de vault ou KMS. Estou ciente disso, porém, para fins de projeto, vou deixar aqui, mas em um cenário real, isso é um risco de segurança.
-# Usaremos uma variável de ambiente simulada aqui.
-SECRET_SALT = "xK9!wQp@2mZ$vL8"
+# Carrega o Salt de segurança do arquivo .env
+load_dotenv()
+SECRET_SALT = os.getenv("LGPD_SALT_KEY")
+
+if not SECRET_SALT:
+    raise ValueError("FATAL: Salt de segurança não encontrado. Verifique a variável de ambiente LGPD_SALT_KEY.")
 
 def processar_silver():
     print("Iniciando processamento Camada Silver (Limpeza e LGPD)...")
@@ -41,20 +46,11 @@ def processar_silver():
     df_integrado = df_crm.join(df_erp_limpo, on='customer_id', how='inner')
 
     # 4. Políticas de Segurança
-    print("Aplicando Mascaramento e Salted Hashing em PII...")
+    print("Aplicando Mascaramento e Salted Hashing em PII via security_utils...")
     df_seguro = df_integrado \
-        .withColumn(
-            "cpf_anonimizado",
-            sha2(concat(col("cpf"), lit(SECRET_SALT)), 256)
-        ) \
-        .withColumn(
-            "email_mascarado",
-            regexp_replace(col("email_pessoal"), "^(.).*(@.*)$", "$1***$2")
-        ) \
-        .withColumn(
-            "telefone_mascarado",
-            regexp_replace(col("telefone"), "\d{4}$", "****")
-        ) \
+        .withColumn("cpf_anonimizado", hash_sensivel("cpf", SECRET_SALT)) \
+        .withColumn("email_mascarado", mascarar_email("email_pessoal")) \
+        .withColumn("telefone_mascarado", mascarar_telefone("telefone")) \
         .drop("cpf", "email_pessoal", "telefone", "nome_completo")
     
     # 5. Salvamento na Camada Silver
