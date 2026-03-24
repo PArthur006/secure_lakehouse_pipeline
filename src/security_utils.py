@@ -17,4 +17,4 @@ def mascarar_telefone(nome_coluna):
     """
     Mascara os últimos 4 dígitos do telefone. (Ex: +55 11 9999-****)
     """
-    return regexp_replace(col(nome_coluna), "\d{4}$", "****")
+    return regexp_replace(col(nome_coluna), r"\d{4}$", "****")
