@@ -23,9 +23,9 @@ Para garantir a total conformidade com a LGPD e mitigar riscos de vazamento (_Da
 
 ### 📋 Evidência de Auditoria (PoC)
 
-Abaixo está o registro real gerado pelo motor de auditoria (`src/04_inspect_lgpd.py`), comprovando a transformação criptográfica entre as camadas:
+Abaixo está o registro real gerado pelo motor de auditoria (`src/04_inspect_lgpd.py`), no dia 24/03/2026, comprovando a transformação criptográfica entre as camadas:
 
-
+<img width="739" height="579" alt="Image" src="https://github.com/user-attachments/assets/70bba4c3-93e7-4cf8-ad5d-c3108701ddea" />
 
 ## 🚀 Como Executar Localmente
 
