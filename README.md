@@ -8,22 +8,24 @@ O objetivo principal não é treinar a IA, mas arquitetar a infraestrutura de da
 
 O pipeline foi construído sobre a **Arquitetura Medallion**, utilizando **Apache Spark (PySpark)** para processamento distribuído e **Delta Lake** para garantir transações ACID, _Time Travel_ e confiabilidade na escrita.
 
-1. **Simulação de Caos (Silos Corporativos):** Um _dataset_ de Churn foi enriquecido com PIIs sintéticas (CPFs, Nomes, Emails) via biblioteca `Faker` e deliberadamente fragmentado em dois sistemas inconsistentes: um CRM (Atendimento) e um ERP (Faturamento com dados nulos).
+1. **Simulação de Caos (Silos Corporativos):** Um _dataset_ de Churn foi enriquecido com PIIs sintéticas (CPFs, Nomes, Emails) via biblioteca `Faker` e fragmentado em dois sistemas inconsistentes: um CRM (Atendimento) e um ERP (Faturamento com dados nulos).
 2. **Camada Bronze (Ingestão Raw):** Ingestão bruta dos silos em formato Delta. Preservação do histórico imutável sem transformações.
-3. **Camada Silver (Núcleo de Segurança):** Integração dos sistemas (JOIN) e sanitização. É nesta etapa que a governança cibernética é aplicada para destruir a PII direta.
-4. **Camada Gold (Machine Learning Features):** Engenharia de _features_ binarizando variáveis categóricas (One-Hot Encoding) e tipagem estrita para consumo direto por algoritmos de Inteligência Artificial.
+3. **Camada Silver (Núcleo de Segurança):** Integração dos sistemas (JOIN) e sanitização. Aplicação da governança cibernética para destruir a PII direta.
+4. **Camada Gold (Machine Learning Features):** Engenharia de _features_ binarizando variáveis categóricas (One-Hot Encoding) e tipagem estrita para consumo direto por algoritmos de IA.
+5. **Orquestração e Observabilidade:** Automação do fluxo via **Prefect** com DAG (Directed Acyclic Graph), isolando subprocessos e garantindo tolerância a falhas e monitoramento em tempo real.
 
 ## 🔐 Engenharia de Segurança Cibernética
 
-Para garantir a total conformidade com a LGPD e mitigar riscos de vazamento (_Data Breach_), a Camada Silver implementa:
+Para garantir a total conformidade com a LGPD e mitigar riscos de vazamento (_Data Breach_), a arquitetura implementa:
 
-- **Salted Hashing (SHA-256):** CPFs não são apenas codificados. Um _Secret Salt_ é concatenado ao dado antes do _hash_, tornando ataques de dicionário (_Rainbow Tables_) matematicamente inviáveis. O cientista de dados consegue rastrear o usuário único pelo Hash, mas nunca descobrirá o CPF real.
-- **Data Masking (Mascaramento Dinâmico):** E-mails e telefones são ofuscados usando Expressões Regulares (Regex) nativas do PySpark (`p***@gmail.com`). Permite a validação parcial pelo atendimento ao cliente sem expor a identidade completa no Data Warehouse.
-- **Destruição de Colunas Críticas:** Nomes completos e dados originais expostos são fisicamente "dropados" do _DataFrame_ antes da materialização no Delta Lake da Silver.
+- **Salted Hashing (SHA-256):** CPFs não são apenas codificados. Um _Secret Salt_ é concatenado ao dado antes do _hash_, tornando ataques de engenharia reversa (_Rainbow Tables_) matematicamente inviáveis.
+- **Data Masking (Mascaramento Dinâmico):** E-mails e telefones são ofuscados usando Expressões Regulares (Regex) nativas do PySpark (`p***@gmail.com`).
+- **Gestão de Segredos:** Remoção total de chaves expostas no código (_Hardcoded Secrets_) através da injeção dinâmica via variáveis de ambiente (`.env`).
+- **Testes Automatizados (Pytest):** Cobertura de testes unitários no módulo de criptografia para garantir que a lógica de segurança não seja corrompida em atualizações futuras.
 
 ### 📋 Evidência de Auditoria (PoC)
 
-Abaixo está o registro real gerado pelo motor de auditoria (`src/04_inspect_lgpd.py`), no dia 24/03/2026, comprovando a transformação criptográfica entre as camadas:
+Abaixo está o registro real gerado pelo motor de auditoria (`src/04_inspect_lgpd.py`), comprovando a transformação criptográfica entre as camadas:
 
 <img width="739" height="579" alt="Image" src="https://github.com/user-attachments/assets/70bba4c3-93e7-4cf8-ad5d-c3108701ddea" />
 
@@ -31,9 +33,9 @@ Abaixo está o registro real gerado pelo motor de auditoria (`src/04_inspect_lgp
 
 ### 1. Instalação e Configuração
 
-Recomenda-se o uso do Python 3.11 para máxima estabilidade com o Apache Spark.
+Recomenda-se o uso do Python 3.11 para máxima estabilidade.
 
-``` bash
+```bash
 python -m venv venv
 
 # Linux / macOS:
@@ -44,26 +46,41 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2. Execução da Esteira de Dados
+### 2. Configuração de Segurança
+
+Crie um arquivo `.env` na raiz do projeto e defina uma chave secreta forte para o Salt cripográfico:
+
+```
+LGPD_SALT_KEY=SuaChaveSecretaAqui123!
+```
+
+### 3. Executando os Testes Unitários
+
+Valide a integridade dos algoritmos de segurança antes de rodar o pipeline:
 
 ``` bash
-# 1. Gera os silos sintéticos corrompidos na pasta data/00_raw
-python src/00_setup_caos.py
+pytest tests/
+```
 
-# 2. Ingestão Delta na Camada Bronze
-python src/01_bronze.py
+### 4. Execução da Esteira Orquestrada (Prefect)
 
-# 3. Tratamento de Churn e Criptografia LGPD na Camada Silver
-python src/02_silver.py
+O pipeline inteiro é gerenciado pelo orquestrador. Abra dois terminais com o `venv` ativado:
 
-# 4. Preparação Matemática (One-Hot Encoding) na Camada Gold
-python src/03_gold.py
+#### Terminal 1 - Painel de Observabilidade:
 
-# 5. Executar o inspetor de conformidade
-python src/04_inspect_lgpd.py
+``` bash
+prefect server start
+```
+
+*Acesse a interface web gerada para monitorar a execução em tempo real.*
+
+#### Terminal 2 - Disparo do Pipeline:
+
+``` bash
+python src/orchestrator.py
 ```
 
 ---
 
 **Desenvolvido por:**
-[Pedro Arthur](https://parthur.dev) - Estudante de Engenharia de Dados e Segurança
+[Pedro Arthur](https://parthur.dev) - Estudante de Engenharia e Segurança de Dados.
