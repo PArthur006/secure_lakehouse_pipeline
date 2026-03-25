@@ -4,7 +4,7 @@ __pycache__/
 
 # Dados 
 data/
-!data/**/.gitkeep
+data/**/.gitkeep
 
 # Segurança
 .env
