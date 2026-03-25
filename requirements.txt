@@ -4,3 +4,4 @@ Faker==24.4.0
 pandas==2.2.2
 python-dotenv==1.0.1
 pytest==7.3.1
+prefect==2.8.0
