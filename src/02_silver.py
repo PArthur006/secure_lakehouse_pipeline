@@ -1,7 +1,6 @@
 import os
 import sys
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, sha2, concat, lit, regexp_replace, when
 from delta import configure_spark_with_delta_pip
 from dotenv import load_dotenv
 from security_utils import hash_sensivel, mascarar_email, mascarar_telefone
@@ -39,7 +38,7 @@ def processar_silver():
 
     # 2. Qualidade de Dados (Data Quality)
     df_erp_limpo = df_erp.dropna(subset=['MonthlyCharges'])
-    print(f"Registors nulos de faturamento removidos. Linhas restantes no ERP: {df_erp_limpo.count()}")
+    print("Registros nulos de faturamento removidos do ERP.")
 
     # 3. Integração
     print("Executando JOIN entre CRM e ERP...")
